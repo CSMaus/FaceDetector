@@ -1,5 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="packages\Microsoft.ML.OnnxRuntime.1.16.0\build\netstandard2.0\Microsoft.ML.OnnxRuntime.props" Condition="Exists('packages\Microsoft.ML.OnnxRuntime.1.16.0\build\netstandard2.0\Microsoft.ML.OnnxRuntime.props')" />
+  <Import Project="packages\Microsoft.ML.OnnxRuntime.Gpu.1.16.0\build\netstandard2.0\Microsoft.ML.OnnxRuntime.Gpu.props" Condition="Exists('packages\Microsoft.ML.OnnxRuntime.Gpu.1.16.0\build\netstandard2.0\Microsoft.ML.OnnxRuntime.Gpu.props')" />
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -65,6 +67,9 @@
     <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=7.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>packages\Microsoft.Bcl.AsyncInterfaces.7.0.0\lib\net462\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.ML.OnnxRuntime, Version=0.0.0.0, Culture=neutral, PublicKeyToken=f27f157f0a5b7bb6, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.ML.OnnxRuntime.Managed.1.16.0\lib\netstandard2.0\Microsoft.ML.OnnxRuntime.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
@@ -84,6 +89,9 @@
       <HintPath>packages\System.Memory.4.5.5\lib\net461\System.Memory.dll</HintPath>
     </Reference>
     <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Tensors, Version=0.1.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>packages\System.Numerics.Tensors.0.1.0\lib\netstandard1.1\System.Numerics.Tensors.dll</HintPath>
+    </Reference>
     <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
     </Reference>
@@ -132,6 +140,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="ViewModels\CameraViewModel.cs" />
+    <Compile Include="ViewModels\FaceDetectorViewModel.cs" />
     <Compile Include="Views\CameraView.xaml.cs">
       <DependentUpon>CameraView.xaml</DependentUpon>
     </Compile>
@@ -201,6 +210,11 @@
     <Error Condition="!Exists('packages\Emgu.CV.runtime.windows.cuda.npp.11.1.218\build\Emgu.CV.runtime.windows.cuda.npp.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Emgu.CV.runtime.windows.cuda.npp.11.1.218\build\Emgu.CV.runtime.windows.cuda.npp.targets'))" />
     <Error Condition="!Exists('packages\Emgu.CV.runtime.windows.cuda.4.4.0.4077\build\Emgu.CV.runtime.windows.cuda.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Emgu.CV.runtime.windows.cuda.4.4.0.4077\build\Emgu.CV.runtime.windows.cuda.targets'))" />
     <Error Condition="!Exists('packages\Emgu.CV.runtime.windows.4.4.0.4077\build\Emgu.CV.runtime.windows.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Emgu.CV.runtime.windows.4.4.0.4077\build\Emgu.CV.runtime.windows.targets'))" />
+    <Error Condition="!Exists('packages\Microsoft.ML.OnnxRuntime.Managed.1.16.0\build\netstandard2.0\Microsoft.ML.OnnxRuntime.Managed.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.ML.OnnxRuntime.Managed.1.16.0\build\netstandard2.0\Microsoft.ML.OnnxRuntime.Managed.targets'))" />
+    <Error Condition="!Exists('packages\Microsoft.ML.OnnxRuntime.Gpu.1.16.0\build\netstandard2.0\Microsoft.ML.OnnxRuntime.Gpu.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.ML.OnnxRuntime.Gpu.1.16.0\build\netstandard2.0\Microsoft.ML.OnnxRuntime.Gpu.props'))" />
+    <Error Condition="!Exists('packages\Microsoft.ML.OnnxRuntime.Gpu.1.16.0\build\netstandard2.0\Microsoft.ML.OnnxRuntime.Gpu.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.ML.OnnxRuntime.Gpu.1.16.0\build\netstandard2.0\Microsoft.ML.OnnxRuntime.Gpu.targets'))" />
+    <Error Condition="!Exists('packages\Microsoft.ML.OnnxRuntime.1.16.0\build\netstandard2.0\Microsoft.ML.OnnxRuntime.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.ML.OnnxRuntime.1.16.0\build\netstandard2.0\Microsoft.ML.OnnxRuntime.props'))" />
+    <Error Condition="!Exists('packages\Microsoft.ML.OnnxRuntime.1.16.0\build\netstandard2.0\Microsoft.ML.OnnxRuntime.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.ML.OnnxRuntime.1.16.0\build\netstandard2.0\Microsoft.ML.OnnxRuntime.targets'))" />
   </Target>
   <Import Project="packages\Emgu.CV.runtime.windows.cuda.blas.11.1.218\build\Emgu.CV.runtime.windows.cuda.blas.targets" Condition="Exists('packages\Emgu.CV.runtime.windows.cuda.blas.11.1.218\build\Emgu.CV.runtime.windows.cuda.blas.targets')" />
   <Import Project="packages\Emgu.CV.runtime.windows.cuda.cufft.11.1.218\build\Emgu.CV.runtime.windows.cuda.cufft.targets" Condition="Exists('packages\Emgu.CV.runtime.windows.cuda.cufft.11.1.218\build\Emgu.CV.runtime.windows.cuda.cufft.targets')" />
@@ -210,4 +224,7 @@
   <Import Project="packages\Emgu.CV.runtime.windows.cuda.npp.11.1.218\build\Emgu.CV.runtime.windows.cuda.npp.targets" Condition="Exists('packages\Emgu.CV.runtime.windows.cuda.npp.11.1.218\build\Emgu.CV.runtime.windows.cuda.npp.targets')" />
   <Import Project="packages\Emgu.CV.runtime.windows.cuda.4.4.0.4077\build\Emgu.CV.runtime.windows.cuda.targets" Condition="Exists('packages\Emgu.CV.runtime.windows.cuda.4.4.0.4077\build\Emgu.CV.runtime.windows.cuda.targets')" />
   <Import Project="packages\Emgu.CV.runtime.windows.4.4.0.4077\build\Emgu.CV.runtime.windows.targets" Condition="Exists('packages\Emgu.CV.runtime.windows.4.4.0.4077\build\Emgu.CV.runtime.windows.targets')" />
+  <Import Project="packages\Microsoft.ML.OnnxRuntime.Managed.1.16.0\build\netstandard2.0\Microsoft.ML.OnnxRuntime.Managed.targets" Condition="Exists('packages\Microsoft.ML.OnnxRuntime.Managed.1.16.0\build\netstandard2.0\Microsoft.ML.OnnxRuntime.Managed.targets')" />
+  <Import Project="packages\Microsoft.ML.OnnxRuntime.Gpu.1.16.0\build\netstandard2.0\Microsoft.ML.OnnxRuntime.Gpu.targets" Condition="Exists('packages\Microsoft.ML.OnnxRuntime.Gpu.1.16.0\build\netstandard2.0\Microsoft.ML.OnnxRuntime.Gpu.targets')" />
+  <Import Project="packages\Microsoft.ML.OnnxRuntime.1.16.0\build\netstandard2.0\Microsoft.ML.OnnxRuntime.targets" Condition="Exists('packages\Microsoft.ML.OnnxRuntime.1.16.0\build\netstandard2.0\Microsoft.ML.OnnxRuntime.targets')" />
 </Project>
