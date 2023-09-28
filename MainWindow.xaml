@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ObjectDetector"
         mc:Ignorable="d"
-        Title="Camera Feed" Height="450" Width="800">
-    <Grid Margin="5">
-        <Frame x:Name="cameraFrame" NavigationUIVisibility="Visible"/>
+        Title="Face detector" Height="450" Width="800">
+    <Grid Background="#16161A">
+        <Frame x:Name="cameraFrame" NavigationUIVisibility="Hidden"/>
     </Grid>
 </Window>

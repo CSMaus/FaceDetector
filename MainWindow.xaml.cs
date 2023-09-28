@@ -9,11 +9,11 @@ namespace ObjectDetector
 {
     public partial class MainWindow : Window
     {
-        private CameraView _cameraView;
+        private readonly CameraUserControlView _cameraView;
         public MainWindow()
         {
             InitializeComponent();
-            _cameraView = new CameraView();
+            _cameraView = new CameraUserControlView();
             cameraFrame.Navigate(_cameraView);
         }
         public void UpdateCameraViewDataContext(CameraViewModel cameraViewModel)
@@ -21,6 +21,11 @@ namespace ObjectDetector
             _cameraView.DataContext = null;
             _cameraView.DataContext = cameraViewModel;
         }
+        protected override void OnClosed(EventArgs e)
+        {
+            base.OnClosed(e);
 
+            Application.Current.Shutdown();
+        }
     }
 }

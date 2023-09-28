@@ -12,16 +12,17 @@ using Emgu.CV;
 using Emgu.CV.Structure;
 using System.IO;
 using Emgu.CV.CvEnum;
+using System.Windows.Input;
+using System.Collections.ObjectModel;
 
 namespace ObjectDetector.ViewModels
 {
     public class CameraViewModel : INotifyPropertyChanged
     {
-        private VideoCaptureDevice _videoSource;
-
         [System.Runtime.InteropServices.DllImport("gdi32.dll")]
         public static extern bool DeleteObject(IntPtr hObject);
 
+        private VideoCaptureDevice _videoSource;
         private BitmapSource _currentFrame;
         public BitmapSource CurrentFrame
         {
@@ -33,81 +34,130 @@ namespace ObjectDetector.ViewModels
             }
         }
 
+        public bool CameraOn { get; set; } = true;
+        public ICommand TurnOnOff { get; set; }
+        private DateTime _lastProcessedTime = DateTime.MinValue;
+
+        // select the camera device
+        public ObservableCollection<string> VideoDevices { get; set; } = new ObservableCollection<string>();
+        public int SelectedDeviceIndex
+        {
+            get => _selectedDeviceIndex;
+            set
+            {
+                _selectedDeviceIndex = value;
+                OnPropertyChanged(nameof(SelectedDeviceIndex));
+                // Here, you might also want to stop the current device and start the selected one.
+                SetVideoDeviceByIndex(value);
+            }
+        }
+        private int _selectedDeviceIndex;
+
         // https://stackoverflow.com/questions/44406587/explanation-of-haarcascade-xml-files-in-opencv
-        CascadeClassifier faceCascade = new CascadeClassifier("Resources/haarcascade_frontalface_default.xml");
+        readonly CascadeClassifier faceCascade = new CascadeClassifier("Resources/haarcascade_frontalface_default.xml");
 
 
         public CameraViewModel()
         {
+            TurnOnOff = new RelayCommand(TurnCameraOnOff);
 
-            var videoDevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
-            if (videoDevices.Count == 0)
-                throw new ApplicationException("No camera found!");
-            Console.WriteLine(videoDevices.Count);
-            for (int i = 0; i < videoDevices.Count; i++)
+            var videoDevicesCollection = new FilterInfoCollection(FilterCategory.VideoInputDevice);
+            foreach (FilterInfo device in videoDevicesCollection)
             {
-                Console.WriteLine($"{i}: {videoDevices[i].Name}");
+                VideoDevices.Add(device.Name);
             }
 
-            Console.WriteLine($"HasCuda: {Emgu.CV.Cuda.CudaInvoke.HasCuda}");
-            Console.WriteLine($"Cuda version: {Emgu.CV.Cuda.CudaInvoke.GetCudaEnabledDeviceCount()}"); //GetCudaVersion()
-            Console.WriteLine($"GPU count: {Emgu.CV.Cuda.CudaInvoke.GetCudaDevicesSummary()}"); // GetDeviceCount()
+            if (VideoDevices.Count == 0)
+                throw new ApplicationException("No camera found!");
 
-
-            _videoSource = new VideoCaptureDevice(videoDevices[1].MonikerString);
+        }
+        private void TurnCameraOnOff()
+        {
             if (_videoSource != null)
             {
-                _videoSource.NewFrame += VideoSource_NewFrame;
+                CameraOn = !CameraOn;
+                if (CameraOn)
+                {
+                    try
+                    {
+                        _videoSource.NewFrame += VideoSource_NewFrame;
+                        _videoSource.Start();
+                    }
+                    catch 
+                    {
+                        MessageBox.Show($"Error starting video source: No camera selected");
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        _videoSource.NewFrame -= VideoSource_NewFrame;
+                        _videoSource.Stop();
+                        CurrentFrame = null;
+                    }
+                    catch 
+                    {
+                        MessageBox.Show($"Error in video source: No camera selected");
+                    }
+                }
             }
-            try
-            {
-                _videoSource.Start();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error starting video source: {ex.Message}");
-            }
+            
         }
+        private Rectangle[] Faces { get; set; }
+
         private void VideoSource_NewFrame(object sender, NewFrameEventArgs eventArgs)
         {
-            if (Application.Current != null) 
+            if (Application.Current != null)
             {
                 Application.Current.Dispatcher.Invoke(() =>
                 {
-                    IntPtr hBitmap = eventArgs.Frame.GetHbitmap();
-                    try
+                    if (CameraOn)
                     {
-                        using (Bitmap srcBitmap = Bitmap.FromHbitmap(hBitmap))
+                        IntPtr hBitmap = eventArgs.Frame.GetHbitmap();
+                        try
                         {
-                            Image<Bgr, byte> imageCV = srcBitmap.ToImage<Bgr, byte>();
-                            UMat imageCV_UMat = imageCV.ToUMat();  //AccessType.ReadWrite
-
-                            // Convert the UMat to grayscale using GPU (if available)
-                            UMat grayImage = new UMat();
-                            CvInvoke.CvtColor(imageCV_UMat, grayImage, ColorConversion.Bgr2Gray);
-
-                            // Detect faces
-                            Rectangle[] faces = faceCascade.DetectMultiScale(grayImage, 1.1, 10, System.Drawing.Size.Empty);
-
-                            foreach (Rectangle face in faces)
+                            using (Bitmap srcBitmap = Bitmap.FromHbitmap(hBitmap))
                             {
-                                imageCV.Draw(face, new Bgr(System.Drawing.Color.Red), 2);
+                                Image<Bgr, byte> imageCV = srcBitmap.ToImage<Bgr, byte>();
+
+                                // If less than your desired interval (e.g., 2 seconds) has passed since last processing,
+                                // just update the current frame with previous face rectangles without face detection.
+                                if ((DateTime.Now - _lastProcessedTime).TotalSeconds < 0.5)
+                                {
+                                    if (Faces != null)
+                                    {
+                                        foreach (Rectangle face in Faces)
+                                        {
+                                            imageCV.Draw(face, new Bgr(System.Drawing.Color.Red), 2);
+                                        }
+                                    }
+                                    CurrentFrame = ConvertToBitmapSource(imageCV.ToBitmap());
+                                    return;
+                                }
+
+                                // Face detection and drawing logic
+                                UMat imageCV_UMat = imageCV.ToUMat();
+                                UMat grayImage = new UMat();
+                                CvInvoke.CvtColor(imageCV_UMat, grayImage, ColorConversion.Bgr2Gray);
+                                Faces = faceCascade.DetectMultiScale(grayImage, 1.1, 10, System.Drawing.Size.Empty);
+
+                                foreach (Rectangle face in Faces)
+                                {
+                                    imageCV.Draw(face, new Bgr(System.Drawing.Color.Red), 2);
+                                }
+
+                                // Set the processed frame as the current frame
+                                CurrentFrame = ConvertToBitmapSource(imageCV.ToBitmap());
+
+                                // Update the last processed time
+                                _lastProcessedTime = DateTime.Now;
                             }
-
-                            CurrentFrame = ConvertToBitmapSource(imageCV.ToBitmap());
-                            // CurrentFrame = ConvertToBitmapSource(imageCV.);
                         }
-
-
-                        // CurrentFrame = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(
-                        //    hBitmap,
-                        //    IntPtr.Zero,
-                        //    Int32Rect.Empty,
-                        //    BitmapSizeOptions.FromEmptyOptions());
-                    }
-                    finally
-                    {
-                        DeleteObject(hBitmap); // Release the handle
+                        finally
+                        {
+                            DeleteObject(hBitmap);
+                        }
                     }
                 });
             }
@@ -116,11 +166,29 @@ namespace ObjectDetector.ViewModels
                 Environment.Exit(0);
             }
         }
+
+
+        private void SetVideoDeviceByIndex(int index)
+        {
+            if (_videoSource != null && _videoSource.IsRunning)
+            {
+                _videoSource.NewFrame -= VideoSource_NewFrame;
+                _videoSource.Stop(); 
+                CurrentFrame = null;
+            }
+
+            var videoDevicesCollection = new FilterInfoCollection(FilterCategory.VideoInputDevice);
+            _videoSource = new VideoCaptureDevice(videoDevicesCollection[index].MonikerString);
+            
+            _videoSource.NewFrame += VideoSource_NewFrame;
+            _videoSource.Start();
+        }
+
         public byte[,,] ConvertImageToByteArray(Bitmap image)
         {
             int width = image.Width;
             int height = image.Height;
-            byte[,,] imageData = new byte[height, width, 3]; // Assuming 3 channels for BGR
+            byte[,,] imageData = new byte[height, width, 3];
 
             BitmapData bmpData = image.LockBits(new System.Drawing.Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, image.PixelFormat);
 
@@ -128,7 +196,7 @@ namespace ObjectDetector.ViewModels
             int bytes = Math.Abs(bmpData.Stride) * height;
             byte[] rgbValues = new byte[bytes];
 
-            // Copy the RGB values into the array.
+
             System.Runtime.InteropServices.Marshal.Copy(ptr, rgbValues, 0, bytes);
 
             int stride = bmpData.Stride;
@@ -149,8 +217,6 @@ namespace ObjectDetector.ViewModels
 
             return imageData;
         }
-
-
         public static BitmapSource ConvertToBitmapSource(Bitmap bitmap)
         {
             var bitmapData = bitmap.LockBits(new System.Drawing.Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadOnly, bitmap.PixelFormat);
@@ -164,8 +230,8 @@ namespace ObjectDetector.ViewModels
         {
             if (_videoSource.IsRunning)
             {
-                _videoSource.SignalToStop();  // Signal the device to stop capturing
-                _videoSource.WaitForStop();   // Wait for the device to finish
+                _videoSource.SignalToStop();
+                _videoSource.WaitForStop();
             }
         }
 
@@ -174,6 +240,25 @@ namespace ObjectDetector.ViewModels
         protected virtual void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+
+    public class RelayCommand : ICommand
+    {
+        private readonly Action _execute;
+
+        public RelayCommand(Action execute)
+        {
+            _execute = execute;
+        }
+
+        public event EventHandler CanExecuteChanged;
+
+        public bool CanExecute(object parameter) => true;
+
+        public void Execute(object parameter)
+        {
+            _execute();
         }
     }
 }

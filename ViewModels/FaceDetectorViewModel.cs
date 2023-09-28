@@ -77,7 +77,8 @@ namespace ObjectDetector.ViewModels
                     {
                         using (Bitmap srcBitmap = Bitmap.FromHbitmap(hBitmap))
                         {
-                            Image<Bgr, byte> imageCV = srcBitmap.ToImage<Bgr, byte>();
+                            /*Image<Bgr, byte> imageCV = srcBitmap.ToImage<Bgr, byte>();
+
 
                             byte[,,] imageData = ConvertImageToByteArray(srcBitmap);
                             var tensor = new DenseTensor<float>(imageData, new[] { 1, srcBitmap.Height, srcBitmap.Width, 3 }); // Assuming model takes NHWC format
@@ -95,6 +96,7 @@ namespace ObjectDetector.ViewModels
                             }
 
                             CurrentFrame = ConvertToBitmapSource(imageCV.ToBitmap());
+                            */
                         }
 
 

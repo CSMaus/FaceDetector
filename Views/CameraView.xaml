@@ -4,11 +4,26 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:ObjectDetector.Views"
+      
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
       Title="CameraView">
 
     <Grid Margin="5">
-        <Image Source="{Binding CurrentFrame}"/>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" MinHeight="50"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Image Source="{Binding CurrentFrame}" Grid.Row="1"/>
+        
+        <StackPanel Orientation="Horizontal" Grid.Row="0">
+            <Button x:Name="btnFilterImage" Content="Filter"
+                Width="60" Height="25" Style="{StaticResource BtnStyle}" Margin="1"
+                ToolTip="Filter noise"/>
+
+        </StackPanel>
     </Grid>
 </Page>
