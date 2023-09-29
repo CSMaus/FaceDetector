@@ -16,9 +16,6 @@ using System.Windows.Shapes;
 
 namespace ObjectDetector.Views
 {
-    /// <summary>
-    /// Interaction logic for CameraUserControlView.xaml
-    /// </summary>
     public partial class CameraUserControlView : UserControl
     {
         public CameraUserControlView()

@@ -38,7 +38,7 @@ namespace ObjectDetector.ViewModels
         public ICommand TurnOnOff { get; set; }
         private DateTime _lastProcessedTime = DateTime.MinValue;
 
-        // select the camera device
+
         public ObservableCollection<string> VideoDevices { get; set; } = new ObservableCollection<string>();
         public int SelectedDeviceIndex
         {
@@ -47,7 +47,6 @@ namespace ObjectDetector.ViewModels
             {
                 _selectedDeviceIndex = value;
                 OnPropertyChanged(nameof(SelectedDeviceIndex));
-                // Here, you might also want to stop the current device and start the selected one.
                 SetVideoDeviceByIndex(value);
             }
         }
@@ -56,6 +55,45 @@ namespace ObjectDetector.ViewModels
         // https://stackoverflow.com/questions/44406587/explanation-of-haarcascade-xml-files-in-opencv
         readonly CascadeClassifier faceCascade = new CascadeClassifier("Resources/haarcascade_frontalface_default.xml");
 
+        private double _doubleUpdateFreq;
+        public double DoubleUpdateFreq
+        {
+            get { return _doubleUpdateFreq; }
+            set
+            {
+                if (_doubleUpdateFreq != value)
+                {
+                    _doubleUpdateFreq = value;
+                    OnPropertyChanged(nameof(DoubleUpdateFreq));
+                }
+            }
+        }
+
+        private string _detectionUpdateFreqText;
+        public string DetectionUpdateFreqText
+        {
+            get { return _detectionUpdateFreqText; }
+            set
+            {
+                if (_detectionUpdateFreqText != value)
+                {
+                    _detectionUpdateFreqText = value;
+                    OnPropertyChanged(nameof(DetectionUpdateFreqText));
+
+                    var normalizedValue = _detectionUpdateFreqText.Replace('.', ',');
+
+                    if (double.TryParse(_detectionUpdateFreqText, out double parsedValue))
+                    {
+                        DoubleUpdateFreq = parsedValue;
+                    }
+                    else if(double.TryParse(normalizedValue, out parsedValue))
+                    {
+                        DoubleUpdateFreq = parsedValue;
+                    }
+
+                }
+            }
+        }
 
         public CameraViewModel()
         {
@@ -121,9 +159,8 @@ namespace ObjectDetector.ViewModels
                             {
                                 Image<Bgr, byte> imageCV = srcBitmap.ToImage<Bgr, byte>();
 
-                                // If less than your desired interval (e.g., 2 seconds) has passed since last processing,
-                                // just update the current frame with previous face rectangles without face detection.
-                                if ((DateTime.Now - _lastProcessedTime).TotalSeconds < 0.5)
+                                Console.WriteLine($"Update face detection value: {DoubleUpdateFreq}");
+                                if ((DateTime.Now - _lastProcessedTime).TotalSeconds < DoubleUpdateFreq)
                                 {
                                     if (Faces != null)
                                     {
@@ -136,7 +173,6 @@ namespace ObjectDetector.ViewModels
                                     return;
                                 }
 
-                                // Face detection and drawing logic
                                 UMat imageCV_UMat = imageCV.ToUMat();
                                 UMat grayImage = new UMat();
                                 CvInvoke.CvtColor(imageCV_UMat, grayImage, ColorConversion.Bgr2Gray);
@@ -147,10 +183,8 @@ namespace ObjectDetector.ViewModels
                                     imageCV.Draw(face, new Bgr(System.Drawing.Color.Red), 2);
                                 }
 
-                                // Set the processed frame as the current frame
                                 CurrentFrame = ConvertToBitmapSource(imageCV.ToBitmap());
 
-                                // Update the last processed time
                                 _lastProcessedTime = DateTime.Now;
                             }
                         }
