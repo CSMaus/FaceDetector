@@ -14,6 +14,8 @@ using System.IO;
 using Emgu.CV.CvEnum;
 using System.Windows.Input;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace ObjectDetector.ViewModels
 {
@@ -21,6 +23,7 @@ namespace ObjectDetector.ViewModels
     {
         [System.Runtime.InteropServices.DllImport("gdi32.dll")]
         public static extern bool DeleteObject(IntPtr hObject);
+        Stopwatch stopwatch = new Stopwatch();
 
         private VideoCaptureDevice _videoSource;
         private BitmapSource _currentFrame;
@@ -30,7 +33,7 @@ namespace ObjectDetector.ViewModels
             set
             {
                 _currentFrame = value;
-                OnPropertyChanged(nameof(CurrentFrame));  // Notify the View that the property changed
+                OnPropertyChanged(nameof(CurrentFrame));
             }
         }
 
@@ -53,6 +56,8 @@ namespace ObjectDetector.ViewModels
         private int _selectedDeviceIndex;
 
         // https://stackoverflow.com/questions/44406587/explanation-of-haarcascade-xml-files-in-opencv
+        // check the link. there are also some links there for face recognotion tasks
+        // https://itecnote.com/tecnote/c-emgucv-3-1-face-detection/
         readonly CascadeClassifier faceCascade = new CascadeClassifier("Resources/haarcascade_frontalface_default.xml");
 
         private double _doubleUpdateFreq;
@@ -143,6 +148,7 @@ namespace ObjectDetector.ViewModels
             
         }
         private Rectangle[] Faces { get; set; }
+        private bool printThicks = true;
 
         private void VideoSource_NewFrame(object sender, NewFrameEventArgs eventArgs)
         {
@@ -150,6 +156,8 @@ namespace ObjectDetector.ViewModels
             {
                 Application.Current.Dispatcher.Invoke(() =>
                 {
+                    
+
                     if (CameraOn)
                     {
                         IntPtr hBitmap = eventArgs.Frame.GetHbitmap();
@@ -157,11 +165,13 @@ namespace ObjectDetector.ViewModels
                         {
                             using (Bitmap srcBitmap = Bitmap.FromHbitmap(hBitmap))
                             {
+                                if (printThicks) stopwatch.Start();
                                 Image<Bgr, byte> imageCV = srcBitmap.ToImage<Bgr, byte>();
 
-                                Console.WriteLine($"Update face detection value: {DoubleUpdateFreq}");
+                                // Console.WriteLine($"Update face detection value: {DoubleUpdateFreq}");
                                 if ((DateTime.Now - _lastProcessedTime).TotalSeconds < DoubleUpdateFreq)
                                 {
+
                                     if (Faces != null)
                                     {
                                         foreach (Rectangle face in Faces)
@@ -176,7 +186,11 @@ namespace ObjectDetector.ViewModels
                                 UMat imageCV_UMat = imageCV.ToUMat();
                                 UMat grayImage = new UMat();
                                 CvInvoke.CvtColor(imageCV_UMat, grayImage, ColorConversion.Bgr2Gray);
-                                Faces = faceCascade.DetectMultiScale(grayImage, 1.1, 10, System.Drawing.Size.Empty);
+                                
+
+                                Faces = faceCascade.DetectMultiScale(grayImage, 1.1, 3,
+                                    new System.Drawing.Size(imageCV.Width / 13, imageCV.Height / 13),
+                                    new System.Drawing.Size((int)((double)imageCV.Width / 1.05), (int)((double)imageCV.Width / 1.05))); // 223437 ticks
 
                                 foreach (Rectangle face in Faces)
                                 {
@@ -184,6 +198,8 @@ namespace ObjectDetector.ViewModels
                                 }
 
                                 CurrentFrame = ConvertToBitmapSource(imageCV.ToBitmap());
+                                if (printThicks) stopwatch.Stop();
+                                if (printThicks) Console.WriteLine("RunTime: " + stopwatch.ElapsedTicks + " ticks"); printThicks = false;
 
                                 _lastProcessedTime = DateTime.Now;
                             }
@@ -193,6 +209,8 @@ namespace ObjectDetector.ViewModels
                             DeleteObject(hBitmap);
                         }
                     }
+
+                    
                 });
             }
             else
