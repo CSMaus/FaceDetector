@@ -21,6 +21,9 @@
             <ComboBox ItemsSource="{Binding VideoDevices}"  MinWidth="200"
                       Style="{StaticResource CustomComboBoxStyle}"
                      SelectedIndex="{Binding SelectedDeviceIndex, Mode=TwoWay}" />
+            <ComboBox ItemsSource="{Binding ModelsNames}"  MinWidth="200"
+                    Style="{StaticResource CustomComboBoxStyle}"
+                    SelectedIndex="{Binding SelectedModellIndex, Mode=TwoWay}" />
             <Button x:Name="btnFilterImage" Content="Camera On/Off" 
                     Command="{Binding TurnOnOff}"
                     MinWidth="60" MinHeight="35" Style="{StaticResource BtnStyle}" Margin="1"
@@ -33,7 +36,7 @@
             </Border>
            
             <TextBox Style="{StaticResource TextBoxStyle}" MinWidth="50" Margin="0"
-                     Text="{Binding DetectionUpdateFreqText , UpdateSourceTrigger=PropertyChanged}"/>
+                     Text="{Binding DetectionUpdateFreqText , UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"/>
 
         </StackPanel>
     </Grid>

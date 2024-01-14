@@ -16,6 +16,7 @@ using System.Windows.Input;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using ObjectDetector.Resources;
 
 namespace ObjectDetector.ViewModels
 {
@@ -55,12 +56,40 @@ namespace ObjectDetector.ViewModels
         }
         private int _selectedDeviceIndex;
 
+
+        public int SelectedModellIndex
+        {
+            get => _selectedModellIndex;
+            set
+            {
+                _selectedModellIndex = value;
+                OnPropertyChanged(nameof(SelectedModellIndex));
+                UpdateClassifyer(value);
+            }
+        }
+        private int _selectedModellIndex;
+
         // https://stackoverflow.com/questions/44406587/explanation-of-haarcascade-xml-files-in-opencv
         // check the link. there are also some links there for face recognotion tasks
         // https://itecnote.com/tecnote/c-emgucv-3-1-face-detection/
-        readonly CascadeClassifier faceCascade = new CascadeClassifier("Resources/haarcascade_frontalface_default.xml");
+        // pretrained models are here: https://github.com/opencv/opencv/tree/master/data/haarcascades
 
-        private double _doubleUpdateFreq;
+        // to read model from resources folder:
+        // Build action: Content; Copy if newer
+        private static string[] modelPaths;
+        // = new string[3] { "Resources/haarcascade_frontalface_default.xml",
+        //     "Resources/haarcascade_fullbody.xml",
+        //     "Resources/haarcascade_frontalcatface.xml" }; 
+        public ObservableCollection<string> ModelsNames { get; set; } = new ObservableCollection<string>();
+
+        public CascadeClassifier faceCascade;
+
+        private void UpdateClassifyer(int modelPathIndex)
+        {
+            faceCascade = new CascadeClassifier(modelPaths[modelPathIndex]);
+        }
+
+        private double _doubleUpdateFreq = 0.1;
         public double DoubleUpdateFreq
         {
             get { return _doubleUpdateFreq; }
@@ -112,6 +141,27 @@ namespace ObjectDetector.ViewModels
 
             if (VideoDevices.Count == 0)
                 throw new ApplicationException("No camera found!");
+
+            // to define modelPaths we will read all files in Resources path which ends with .xml
+            modelPaths = Directory.GetFiles("Resources", "*.xml");
+
+
+
+            faceCascade = new CascadeClassifier(modelPaths[0]);
+
+            foreach (string modelPath in modelPaths)
+            {
+                // need to take names without part "haarcascade_" and without part ".xml"
+                ModelsNames.Add($"{Path.GetFileNameWithoutExtension(modelPath).Substring(12)}");
+
+                //ModelsNames.Add($"{Path.GetFileNameWithoutExtension(modelPath).Substring(12)}");
+                //ModelsNames.Add($"{Path.GetFileNameWithoutExtension(modelPath)}");
+            }
+
+
+            // ModelsNames.Add("Human Face");
+            // ModelsNames.Add("Full Body");
+            // ModelsNames.Add("Cat Face");
 
         }
         private void TurnCameraOnOff()
