@@ -192,3 +192,17 @@ git_stats/*
 StyleCop.Cache
 bin
 obj
+Resources/captured_faces/image_10.png
+Resources/captured_faces/image_11.png
+Resources/captured_faces/image_112.png
+Resources/captured_faces/image_13.png
+Resources/captured_faces/image_14.png
+Resources/captured_faces/image_15.png
+Resources/captured_faces/image_3.png
+Resources/captured_faces/image_4.png
+Resources/captured_faces/image_5.png
+Resources/captured_faces/image_6.png
+Resources/captured_faces/image_7.png
+Resources/captured_faces/image_8.png
+Resources/captured_faces/image_9.png
+*.png

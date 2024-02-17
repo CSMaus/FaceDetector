@@ -17,6 +17,9 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using ObjectDetector.Resources;
+using Emgu.CV.Face;
+using System.Collections.Generic;
+using Emgu.CV.Util;
 
 namespace ObjectDetector.ViewModels
 {
@@ -164,6 +167,7 @@ namespace ObjectDetector.ViewModels
             // ModelsNames.Add("Cat Face");
 
         }
+        private bool trainModel = true;
         private void TurnCameraOnOff()
         {
             if (_videoSource != null)
@@ -200,8 +204,49 @@ namespace ObjectDetector.ViewModels
         private Rectangle[] Faces { get; set; }
         private bool printThicks = true;
 
+        // for face recog
+        private EigenFaceRecognizer _faceRecognizer = new EigenFaceRecognizer();
+        private List<Image<Gray, byte>> _controlFaces = new List<Image<Gray, byte>>();
+        private List<int> _labels = new List<int>();
+
+        public void LoadControlFace()
+        {
+            // https://stackoverflow.com/questions/57001717/cant-convert-from-emgu-cv-imageemgu-cv-structure-gray-byte-to-emgu-cv-i
+            for (int i = 0; i < 6; i++)
+            {
+                // here all images should be content and copied on they were not copied before
+                string imagePath = $"Resources/captured_faces/image_{i}.png";
+                if (File.Exists(imagePath))
+                {
+                    var img = new Image<Gray, byte>(imagePath).Resize(100, 100, Inter.Cubic);
+                    _controlFaces.Add(img);
+                    _labels.Add(i);
+                }
+                else
+                {
+                    Console.WriteLine($"Image file not found: {imagePath}");
+                }
+            }
+            var faceImages = _controlFaces.ToArray();
+            var labels = _labels.ToArray();
+
+            VectorOfMat vectorOfMat = new VectorOfMat();
+            VectorOfInt vectorOfInt = new VectorOfInt();
+
+            vectorOfMat.Push(faceImages);
+            vectorOfInt.Push(labels);
+
+            _faceRecognizer.Train(vectorOfMat, vectorOfInt);
+        }
+        private string recognitionResultText = "Rec/Unrec";
         private void VideoSource_NewFrame(object sender, NewFrameEventArgs eventArgs)
         {
+            if (trainModel)
+            {
+                LoadControlFace();
+                trainModel = false;
+            }
+
             if (Application.Current != null)
             {
                 Application.Current.Dispatcher.Invoke(() =>
@@ -215,6 +260,7 @@ namespace ObjectDetector.ViewModels
                         {
                             using (Bitmap srcBitmap = Bitmap.FromHbitmap(hBitmap))
                             {
+                                
                                 if (printThicks) stopwatch.Start();
                                 Image<Bgr, byte> imageCV = srcBitmap.ToImage<Bgr, byte>();
 
@@ -226,7 +272,9 @@ namespace ObjectDetector.ViewModels
                                     {
                                         foreach (Rectangle face in Faces)
                                         {
-                                            imageCV.Draw(face, new Bgr(System.Drawing.Color.Red), 2);
+                                            imageCV.Draw(face, new Bgr(System.Drawing.Color.Red), 3);
+                                            CvInvoke.PutText(imageCV, recognitionResultText, new System.Drawing.Point(face.X, face.Y - 5),
+                                            FontFace.HersheyDuplex, 1, new MCvScalar(100, 255, 100));
                                         }
                                     }
                                     CurrentFrame = ConvertToBitmapSource(imageCV.ToBitmap());
@@ -244,7 +292,33 @@ namespace ObjectDetector.ViewModels
 
                                 foreach (Rectangle face in Faces)
                                 {
-                                    imageCV.Draw(face, new Bgr(System.Drawing.Color.Red), 2);
+                                    imageCV.Draw(face, new Bgr(System.Drawing.Color.Red), 3);
+
+
+                                    var detectedFace = imageCV.Copy(face).Convert<Gray, byte>().Resize(100, 100, Inter.Cubic);
+                                    
+                                    Mat matFace = detectedFace.Mat;
+                                    
+                                    var result = _faceRecognizer.Predict(matFace);
+                                    if (result.Distance < 3000)
+                                    {
+                                        /*
+                                        if (result.Label != 0)
+                                        {
+                                            recognitionResultText = "Developer";
+                                        }
+                                        else
+                                        {
+                                            recognitionResultText = "Unrecognized";
+                                        }*/
+                                        recognitionResultText = result.Label.ToString();// "Developer";
+                                    }
+                                    else
+                                    {
+                                        recognitionResultText = "Unrecognized";
+                                    }
+                                    CvInvoke.PutText(imageCV, recognitionResultText, new System.Drawing.Point(face.X, face.Y - 5),
+                                            FontFace.HersheyDuplex, 1, new MCvScalar(100, 255, 100));
                                 }
 
                                 CurrentFrame = ConvertToBitmapSource(imageCV.ToBitmap());
@@ -252,6 +326,9 @@ namespace ObjectDetector.ViewModels
                                 if (printThicks) Console.WriteLine("RunTime: " + stopwatch.ElapsedTicks + " ticks"); printThicks = false;
 
                                 _lastProcessedTime = DateTime.Now;
+
+
+
                             }
                         }
                         finally
